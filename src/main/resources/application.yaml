@@ -16,6 +16,11 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
 
 auth:
   service:
@@ -24,3 +29,7 @@ auth:
 jwt:
   secret: mySuperLongSecretKeyForJWT1234567890
   expiration: 86400000
+
+kafka:
+  topics:
+    allocation-events: allocation-events

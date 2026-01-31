@@ -13,6 +13,7 @@ import com.webknot.webtrak_admin.enums.ProjectType;
 import com.webknot.webtrak_admin.exception.BadRequestException;
 import com.webknot.webtrak_admin.exception.ConflictException;
 import com.webknot.webtrak_admin.exception.ResourceNotFoundException;
+import com.webknot.webtrak_admin.kafka.AllocationEventProducer;
 import com.webknot.webtrak_admin.repository.AllocationRepository;
 import com.webknot.webtrak_admin.repository.ProjectRepository;
 import lombok.RequiredArgsConstructor;
@@ -40,6 +41,7 @@ public class AllocationService {
     private final AllocationRepository allocationRepository;
     private final ProjectRepository projectRepository;
     private final AuthClient authClient;
+    private final AllocationEventProducer allocationEventProducer;
 
     public AllocationResponse createAllocation(AllocationRequest request) {
         Project project = getProjectByCode(request.getProjectCode());
@@ -66,6 +68,7 @@ public class AllocationService {
 
         Allocation saved = allocationRepository.save(allocation);
         recomputeBenchAllocationForUser(request.getUserId());
+        publishIfNotBench(saved, "ALLOCATION_CREATED");
         return mapToResponse(saved);
     }
 
@@ -87,6 +90,7 @@ public class AllocationService {
         if (existing.isActive()) {
             existing.setActive(false);
             allocationRepository.save(existing);
+            publishIfNotBench(existing, "ALLOCATION_DEACTIVATED");
         }
 
         Allocation allocation = new Allocation();
@@ -103,6 +107,7 @@ public class AllocationService {
 
         Allocation saved = allocationRepository.save(allocation);
         recomputeBenchAllocationForUser(request.getUserId());
+        publishIfNotBench(saved, "ALLOCATION_UPDATED");
         return mapToResponse(saved);
     }
 
@@ -118,6 +123,7 @@ public class AllocationService {
         allocation.setActive(false);
         allocationRepository.save(allocation);
         recomputeBenchAllocationForUser(allocation.getUserId());
+        publishIfNotBench(allocation, "ALLOCATION_DEACTIVATED");
     }
 
     public Page<AllocationResponse> listAllocations(Long userId,
@@ -237,6 +243,9 @@ public class AllocationService {
             affectedUsers.add(allocation.getUserId());
         }
         allocationRepository.saveAll(expired);
+        for (Allocation allocation : expired) {
+            publishIfNotBench(allocation, "ALLOCATION_DEACTIVATED");
+        }
         for (Long userId : affectedUsers) {
             recomputeBenchAllocationForUser(userId);
         }
@@ -383,5 +392,12 @@ public class AllocationService {
                 .createdAt(allocation.getCreatedAt())
                 .updatedAt(allocation.getUpdatedAt())
                 .build();
+    }
+
+    private void publishIfNotBench(Allocation allocation, String eventType) {
+        if (BENCH_PROJECT_CODE.equalsIgnoreCase(allocation.getProject().getCode())) {
+            return;
+        }
+        allocationEventProducer.publishAllocationEvent(allocation, eventType);
     }
 }
