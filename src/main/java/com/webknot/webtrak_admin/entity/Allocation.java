@@ -37,6 +37,9 @@ public class Allocation {
     @Column(nullable = false)
     private LocalDate endDate;
 
+    @Column
+    private LocalDate lockedInDate;
+
     @Column(nullable = false)
     private Double hoursPerDay;
 

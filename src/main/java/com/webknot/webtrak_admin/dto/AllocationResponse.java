@@ -17,6 +17,7 @@ public class AllocationResponse {
     private AllocationType allocationType;
     private LocalDate startDate;
     private LocalDate endDate;
+    private LocalDate lockedInDate;
     private Double hoursPerDay;
     private String allocationRole;
     private boolean manager;

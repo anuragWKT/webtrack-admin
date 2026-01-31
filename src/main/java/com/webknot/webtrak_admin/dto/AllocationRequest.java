@@ -29,6 +29,8 @@ public class AllocationRequest {
     @NotNull(message = "End date is required")
     private LocalDate endDate;
 
+    private LocalDate lockedInDate;
+
     @NotNull(message = "Hours per day is required")
     @DecimalMin(value = "0.1", message = "Hours per day must be greater than 0")
     @DecimalMax(value = "8.0", message = "Hours per day must be 8 or less")

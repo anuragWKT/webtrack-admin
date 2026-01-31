@@ -2,9 +2,11 @@ package com.webknot.webtrak_admin.service;
 
 import com.webknot.webtrak_admin.dto.ProjectRequest;
 import com.webknot.webtrak_admin.dto.ProjectResponse;
+import com.webknot.webtrak_admin.entity.Allocation;
 import com.webknot.webtrak_admin.entity.Project;
 import com.webknot.webtrak_admin.exception.ConflictException;
 import com.webknot.webtrak_admin.exception.ResourceNotFoundException;
+import com.webknot.webtrak_admin.repository.AllocationRepository;
 import com.webknot.webtrak_admin.repository.ProjectRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -14,6 +16,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -26,6 +29,7 @@ import java.util.stream.Collectors;
 public class ProjectService {
 
     private final ProjectRepository projectRepository;
+    private final AllocationRepository allocationRepository;
 
     public ProjectResponse createProject(ProjectRequest request) {
         validateUnique(request.getCode(), request.getName());
@@ -79,6 +83,24 @@ public class ProjectService {
         Project project = projectRepository.findByCode(code)
                 .orElseThrow(() -> new ResourceNotFoundException("Project not found for code: " + code));
         return mapToResponse(project);
+    }
+
+    public List<ProjectResponse> listProjectsForUser(Long userId) {
+        return allocationRepository.findByUserIdAndActiveTrue(userId).stream()
+                .filter(allocation -> !allocation.getEndDate().isBefore(LocalDate.now()))
+                .map(Allocation::getProject)
+                .distinct()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
+    public List<ProjectResponse> listProjectsManagedByUser(Long userId) {
+        return allocationRepository.findByUserIdAndManagerTrueAndActiveTrue(userId).stream()
+                .filter(allocation -> !allocation.getEndDate().isBefore(LocalDate.now()))
+                .map(Allocation::getProject)
+                .distinct()
+                .map(this::mapToResponse)
+                .toList();
     }
 
     public Page<ProjectResponse> listProjects(String search, int page, int size) {
