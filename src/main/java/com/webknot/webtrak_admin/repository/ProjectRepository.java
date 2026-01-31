@@ -1,6 +1,8 @@
 package com.webknot.webtrak_admin.repository;
 
 import com.webknot.webtrak_admin.entity.Project;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -16,4 +18,6 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
     boolean existsByCode(String code);
 
     boolean existsByName(String name);
+
+    Page<Project> findByCodeContainingIgnoreCaseOrNameContainingIgnoreCase(String code, String name, Pageable pageable);
 }
